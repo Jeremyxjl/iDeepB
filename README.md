@@ -9,3 +9,6 @@
 ### Predicting binding profile 
 
 ### Predicting binding profile with control
+
+## Reference
+Contact: Xiaoyong Pan (xypan172436@gmail.com)
