@@ -1,7 +1,7 @@
 # iDeepB
 
 ## Dependency
-python=3.9.12 /
+python=3.9.12  
 torch==1.11.0+cu113
 
 ## iDeepB: Base-resolution binding profile prediction of proteins on RNAs with deep learning
