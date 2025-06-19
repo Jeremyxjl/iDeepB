@@ -1,13 +1,10 @@
 ## iDeepB: Base-resolution binding profile prediction of proteins on RNAs with deep learning
 
 ## Dependency
-python=3.9.12  
+python=3.9.12 \
 torch==1.11.0+cu113
 
-
-## Predicting binding profile
-
-### Predicting binding profile 
+### Predicting binding profile without control
 
 ### Predicting binding profile with control
 
