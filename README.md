@@ -20,11 +20,12 @@ python ideepB_train.py --modelFramework control
 
 ### Predicting binding profile without control
 ```
-python 
+python ideepB_predict.py --modelFramework Treat 
 ```
 
 ### Predicting binding profile with control
 ```
+python ideepB_predict.py --modelFramework control 
 ```
 
 
