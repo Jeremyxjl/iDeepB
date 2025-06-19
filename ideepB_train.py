@@ -13,7 +13,7 @@ from tqdm import tqdm
 from audtorch.metrics.functional import pearsonr as pearsonr_tensor
 
 # 自定义模块导入
-sys.path.append('/data/xliu/work/')
+sys.path.append('./')  
 from iDeepB.iDeepB.utils.utils import (
     epochAverageMeter, 
     save_model, 
