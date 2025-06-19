@@ -8,17 +8,19 @@ torch==1.11.0+cu113
 
 ## Usage:
 ### Train without control
+
 ```
-python ideepB_train.py
+python ideepB_train.py --modelFramework Treat
 ```
 
 ### Train with control
 ```
+python ideepB_train.py --modelFramework control 
 ```
 
 ### Predicting binding profile without control
 ```
-python
+python 
 ```
 
 ### Predicting binding profile with control
