@@ -100,5 +100,6 @@ for sequence in seqs[3:4]:
 ```
 
 
-## Reference
-Contact: Xiaoyong Pan (xypan172436@gmail.com)
+## Online service
+
+We also provide online retrieval service [here](http://www.csbio.sjtu.edu.cn/bioinf/iDeepB/).
