@@ -2,12 +2,26 @@
 
 iDeepB: Base-resolution binding profile prediction of proteins on RNAs with deep learning
 
-
 ## Dependency
 The detailed versions of the dependencies required by iDeepB can be found in the environment.yml file.
 
-python=3.9.12 \
+python=3.9.7 \
 torch==1.11.0+cu113
+
+## Preparation
+
+iDeepB is implemented with Python3, so a Python3 (3.9.7) interpreter is required. At first, download the source code of iDeepB from Github:
+
+```
+git clone https://github.com/Jeremyxjl/iDeepB.git
+```
+
+Then, we recommend you to use a virtual environment, such as Anaconda, to install the dependencies of iDeepB:
+
+```
+conda create -n iDeepB python=3.9.7
+conda activate iDeepB
+```
 
 ## Usage:
 ### Train without control
