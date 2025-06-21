@@ -1,4 +1,7 @@
-# iDeepB: Base-resolution binding profile prediction of proteins on RNAs with deep learning
+# iDeepB
+
+iDeepB: Base-resolution binding profile prediction of proteins on RNAs with deep learning
+
 
 ## Dependency
 The detailed versions of the dependencies required by iDeepB can be found in the environment.yml file.
