@@ -8,10 +8,8 @@ from torcheval.metrics.functional import r2_score
 class loss_fun(object):
     def __init__(self):
         self.eps = 1e-8
-    #output: prediction ; 
-    #target: label
+
     # multinomial negative log likelihood loss: 来自rbpnet
-    # pytorch Multinomial的total_counts智能整数，不可以向量，k可能是错误的: bpnet losses.py: multinomial_nll
 
     def kl_divergence_loss(self, prediction, target):
         kl_loss = torch.nn.KLDivLoss(reduction="batchmean", log_target=True)
@@ -30,7 +28,7 @@ class loss_fun(object):
     
     def multinomial_ng(self, prediction, target):
         total_counts = int(torch.sum(target).item())
-        dist = Multinomial(total_count=total_counts, logits=prediction)
+        dist = Multinomial(total_count=total_counts, logits =prediction)
         loss = -torch.mean(dist.log_prob(target))
         return loss
         
@@ -42,16 +40,6 @@ class loss_fun(object):
         loss = -torch.sum(dist.log_prob(target))/batchLen
         return loss
     
-    def mse_MN(self, prediction, target):  # prediction, target
-        mse_loss = self.mse(prediction, target)
-        poiss_loss = self.multinomialnll_batch(prediction, target)
-        total_loss = (2 * mse_loss * poiss_loss) / (mse_loss + poiss_loss)
-        return total_loss
-    
-    # bpnet losses
-    # PoissonMultinomialNLL
-    # 根据loss 数量级，Poisson + MultinomialNLL 感觉不合适
-    
 
     def multinomialnll_seq(self, prediction, target):
         total_counts = int(torch.sum(target).item())
@@ -60,18 +48,6 @@ class loss_fun(object):
         loss = -torch.sum(dist.log_prob(target))/seqLen
         return loss
 
-    
-    '''
-    def pearson(self, prediction, target):
-        loss = pearsonr(prediction, target).nanmean()
-        return -loss
-    
-    def pearsonr_mse(self, target, prediction, alpha=1):
-        pr_loss = self.pearson(target, prediction)
-        mse_loss = self.mse(prediction, target)
-        total_loss = pr_loss + alpha * mse_loss
-        return total_loss
-    '''
     
     @staticmethod
     def __log(t, eps=1e-20):
@@ -82,15 +58,8 @@ class loss_fun(object):
     # if log: exp(input)−target∗input
     # if not log: input−target∗log(input+eps)
 
-    # 等价于 nn.PoissonNLLLoss(）； if log_input is false : input−target∗log(input+eps)
-    # def poisson_loss_test(self, prediction, target):
-        # return (prediction - target * self.__log(prediction)).mean()
-        # self.eps=1e-20
-        # return (prediction - target * torch.log(prediction + self.eps)).mean() 算出来是nan；等价于 nn.PoissonNLLLoss(）
     def poissonLoss(self, prediction, target): # poisson_loss
         return (prediction - target * self.__log(prediction)).mean()
-        # self.eps=1e-20
-        # return (prediction - target * torch.log(prediction + self.eps)).mean() 算出来是nan；等价于 nn.PoissonNLLLoss(）
     
     # Poisson negative log-likelihood loss 
     def PoissonNLLLoss(self, prediction, target):
@@ -98,13 +67,6 @@ class loss_fun(object):
         return loss
     
     # code from gopher: https://github.com/shtoneyan/gopher/blob/main/gopher/losses.py
-    '''
-    def pearsonr_poisson(self, target, prediction): # 
-        pr_loss = self.pearson(prediction, target)
-        poiss_loss = self.poisson_loss_test(prediction, target)
-        total_loss = (2 * pr_loss * poiss_loss) / (pr_loss + poiss_loss)
-        return total_loss 
-    '''
 
     def mse_poisson(self, prediction, target):  # prediction, target
             mse_loss = self.mse(prediction, target)
@@ -118,26 +80,11 @@ class loss_fun(object):
             total_loss = alpha * poiss_loss + mse_loss
             return total_loss
     
-    def mse_poisson2(self, prediction, target):  # prediction, target
+    def mse_poisson_Mean(self, prediction, target):  # prediction, target
             mse_loss = self.mse(prediction, target)
             poiss_loss = self.PoissonNLLLoss(prediction, target)
             total_loss = (2 * mse_loss * poiss_loss) / (mse_loss + poiss_loss)
             return total_loss
-    
-    def mse_poisson_alpha2(self, prediction, target, alpha=1):  # prediction, target
-            mse_loss = self.mse(prediction, target)
-            poiss_loss = self.PoissonNLLLoss(prediction, target)
-            total_loss = alpha * poiss_loss + mse_loss
-            return total_loss
-    
-    
-    '''
-    def multinomialnll_mse(self, y_pred, y_true, alpha=1):
-            mult_loss = self.multinomialnll_batch(y_pred, y_true)
-            mse_loss = nn.MSELoss()(y_pred, y_true)
-            total_loss = mult_loss + alpha * mse_loss
-            return total_loss
-    '''
     
     def multinomialnll_mse(self, y_pred, y_true, alpha=1):
         mult_loss = self.multinomialnll_batch(y_pred, y_true)
@@ -147,43 +94,3 @@ class loss_fun(object):
     
     def l1_loss(self, y_pred, y_true):
         return nn.L1Loss()(y_pred, y_true)
-
-    '''
-    def pearsonr_multinomialnll(self, target, prediction): 
-        pr_loss = self.pearson(target, prediction)
-        mult_loss = self.multinomialnll_seq(prediction, target)
-        total_loss = (2 * pr_loss * mult_loss) / (pr_loss + mult_loss)
-        return total_loss 
-    '''
-    '''
-    def mse_multinomialnll(self, target, prediction, alpha=1):  # prediction, target
-            mult_loss = self.multinomialnll_batch(prediction, target)
-            mse_loss = self.mse(prediction, target)
-            total_loss = (2 * mse_loss * mult_loss) / (mse_loss + mult_loss) # mult_loss + alpha * mse_loss
-            return total_loss
-    '''
-
-    '''
-    def poissonLammda(self, prediction, target):
-        Mse_loss = torch.nn.MSELoss()
-        loss = Mse_loss(torch.mean(prediction, axis=1), torch.mean(target, axis=1))
-        return loss
-    '''
-
-    
-
-    # loss的数量级
-    # QKI
-    # multinomialnll_batch: 25.311
-    # multinomialnll_seq: 64.687
-    # poisson: 0.30
-    # mse: 3.451
-
-    # SRSF1
-    # multinomialnll_batch: 32.582
-    # multinomialnll_seq: 82.132
-    # poisson: 0.377
-    # mse: 0.790
-
-    
-    
