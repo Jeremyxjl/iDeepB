@@ -161,6 +161,7 @@ def plot_weights_given_ax(ax, array,
     ax.set_ylabel(ylabel)
     ax.yaxis.label.set_fontsize(15)
 
+
 def plot_weights(array,
                  figsize=  (20,2),
                  save_path=None,  # 保存路径参数
@@ -168,8 +169,10 @@ def plot_weights(array,
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111)
     
+    # 在调用 plot_weights_given_ax 时，不传递 save_path
     plot_weights_given_ax(ax=ax, array=array, **kwargs)
 
+    # 去掉上边框和右边框
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
@@ -184,8 +187,14 @@ def plot_weights_ax(array,
                  save_path=None,  # 保存路径参数
                  **kwargs):
     
+    # 在调用 plot_weights_given_ax 时，不传递 save_path
     plot_weights_given_ax(ax=ax, array=array, **kwargs)
 
+    # 去掉上边框和右边框
+    # ax.spines['top'].set_visible(False)
+    # ax.spines['right'].set_visible(False)
+
+    # 仅在 plot_weights 中使用 save_path 来保存图像
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')  # 保存图像到指定路径
 

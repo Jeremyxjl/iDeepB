@@ -94,3 +94,7 @@ class loss_fun(object):
     
     def l1_loss(self, y_pred, y_true):
         return nn.L1Loss()(y_pred, y_true)
+
+
+    
+    

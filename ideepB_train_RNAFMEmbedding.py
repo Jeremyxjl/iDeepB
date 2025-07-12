@@ -7,13 +7,14 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, Dataset
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from audtorch.metrics.functional import pearsonr as pearsonr_tensor
+import torch.nn as nn
 
 # 自定义模块导入
-sys.path.append('./')  
+sys.path.append('/data/xliu/work/20231211_iDeepB')  
 from iDeepB.iDeepB.utils.utils import (
     epochAverageMeter, 
     save_model, 
@@ -28,7 +29,6 @@ from iDeepB.iDeepB.operations.train_ops import (
     calculate_batch_metrics_whole
 )
 from iDeepB.iDeepB.models.iDeepBModel import iDeepB
-
 # Seed
 seed_everything(0)
 
@@ -67,7 +67,7 @@ def parse_arguments():
     parser.add_argument("--randomPadNLen", type=int, default=101,
                        help="Random padding length")
     parser.add_argument("--encode", type=str, default="Embedding",
-                       choices=["OneHot", "Embedding"], 
+                       choices=["OneHot", "Embedding", "LLM"], 
                        help="Sequence encoding method")
     parser.add_argument("--lossM", type=str, dest="loss_fun_name",
                        required=True, help="Loss function name")
@@ -90,46 +90,59 @@ def parse_arguments():
                        help="Enable data filtering")
     
     return parser.parse_args()
+# 解析参数
+args = parse_arguments()
+
+# 设置设备
+os.environ["CUDA_VISIBLE_DEVICES"] = str(args.CUDA)
+args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {args.device}")
+
+# prepare RNAFM
+# Load RNA-FM model
+import fm
+RNAFM, alphabet = fm.pretrained.rna_fm_t12()
+batch_converter = alphabet.get_batch_converter()
+RNAFM.to(args.device)
+RNAFM.eval()  # disables dropout for deterministic results
 
 def read_data(bed_fa_name, signal_max, filter_flag, EncodeMode):
     """加载并预处理数据"""
-    try:
-        # 读取数据
-        bed_fa = pd.read_hdf(bed_fa_name, key='df')
-        bed_fa.columns = ["chr", "chromStart", "chromEnd", "peak", "score", 
-                         "strand", "signal", "signal_ctl", "seq"]
-        
-        print(f"Initial subsequence count: {bed_fa.shape[0]}")
-        
-        # 数据过滤
-        if filter_flag:
-            print(f"Filtering with signal_max={signal_max}")
-            bed_fa["mainPeakMaxSignal"] = np.max(np.array(bed_fa["signal"].tolist()), axis=1)
-            bed_fa = bed_fa[bed_fa['mainPeakMaxSignal'] >= signal_max]
-        
-        # 移除含N的序列
-        bed_fa = bed_fa[~bed_fa['seq'].str.contains('N', case=False)]
-        bed_fa = bed_fa.dropna()
-        print(f"After filtering: {bed_fa.shape[0]} sequences remaining")
-        print("Strand distribution:", Counter(bed_fa['strand']))
-        
-        # 序列处理
-        seqs = bed_fa["seq"].str.upper().str.replace('T', 'U').tolist()
-        
-        if EncodeMode == "OneHot":
-            vocab = list("AUGC")
-            train_data = onehot_encode(seqs, vocab, 4)
-            print(f"One-hot encoded shape: {np.array(train_data).shape}")
-        
-        return train_data, bed_fa["signal"].tolist(), bed_fa["signal_ctl"].tolist()
+
+    # 读取数据
+    bed_fa = pd.read_hdf(bed_fa_name, key='df')
+    bed_fa.columns = ["chr", "chromStart", "chromEnd", "peak", "score", 
+                        "strand", "signal", "signal_ctl", "seq"]
     
-    except Exception as e:
-        print(f"Error loading data: {str(e)}")
-        raise
+    print(f"Initial subsequence count: {bed_fa.shape[0]}")
+    
+    # 数据过滤
+    if filter_flag:
+        print(f"Filtering with signal_max={signal_max}")
+        bed_fa["mainPeakMaxSignal"] = np.max(np.array(bed_fa["signal"].tolist()), axis=1)
+        bed_fa = bed_fa[bed_fa['mainPeakMaxSignal'] >= signal_max]
+    
+    # 移除含N的序列
+    bed_fa = bed_fa[~bed_fa['seq'].str.contains('N', case=False)]
+    bed_fa = bed_fa.dropna()
+    print(f"After filtering: {bed_fa.shape[0]} sequences remaining")
+    print("Strand distribution:", Counter(bed_fa['strand']))
+    
+    # 序列处理
+    seqs = bed_fa["seq"].str.upper().str.replace('T', 'U').tolist()
+    
+    if EncodeMode == "OneHot":
+        vocab = list("AUGC")
+        train_data = onehot_encode(seqs, vocab, 4)
+        print(f"One-hot encoded shape: {np.array(train_data).shape}")
+    elif EncodeMode == "LLM":
+        pass
 
+    # ctl
+    # trainLabel = bedFa["signal"].tolist()
+    # trainLabel_ctl = bedFa["signal_ctl"].to_list()
 
-# 解析参数
-args = parse_arguments()
+    return seqs, bed_fa["signal"].tolist(), bed_fa["signal_ctl"].to_list()   # trainData
 
 task = args.task
 protein,cell,accession = task.split("_")[0], task.split("_")[1],task.split("_")[2]
@@ -145,11 +158,6 @@ filter = args.filter
 
 # output directory
 outputDir = args.output
-
-# 设置设备
-os.environ["CUDA_VISIBLE_DEVICES"] = str(args.CUDA)
-args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {args.device}")
 
 def create_folder_if_not_exists(folder_path):
     if not os.path.exists(folder_path):
@@ -178,17 +186,31 @@ else:
     train_label_ctl = np.asarray(train_label_ctl)
 
 # Convert to PyTorch tensors
-train_data = torch.from_numpy(np.asarray(train_data))
+# train_data = torch.from_numpy(np.asarray(train_data))
 train_label = torch.from_numpy(train_label).float()
 train_label_ctl = torch.from_numpy(train_label_ctl).float()
 
-print(f"Training data shape: {train_data.shape}")
+# print(f"Training data shape: {train_data.shape}")
 print(f"Training label shape: {train_label.shape}")
 print(f"Training control label shape: {train_label_ctl.shape}")
 
 #############
 # Create DataLoader for training data
-train_dataset = torch.utils.data.TensorDataset(train_data, train_label, train_label_ctl)
+
+class RNADataset(Dataset):
+    def __init__(self, sequences, labels, labels_ctl):
+        self.sequences = sequences  # 字符串列表
+        self.labels = labels
+        self.labels_ctl = labels_ctl
+
+    def __len__(self):
+        return len(self.sequences)
+
+    def __getitem__(self, idx):
+        return self.sequences[idx], self.labels[idx], self.labels_ctl[idx]
+
+# train_dataset = torch.utils.data.TensorDataset(train_data, train_label, train_label_ctl)
+train_dataset = RNADataset(train_data, train_label, train_label_ctl) 
 del train_data, train_label, train_label_ctl
 gc.collect()
 
@@ -212,15 +234,16 @@ else:
     val_label_ctl = np.asarray(val_label_ctl)
 
 # Convert to PyTorch tensors
-val_data = torch.from_numpy(np.asarray(val_data))
+# val_data = torch.from_numpy(np.asarray(val_data))
 val_label = torch.from_numpy(val_label).float()
 val_label_ctl = torch.from_numpy(val_label_ctl).float()
 
-print(f"Validation data shape: {val_data.shape}")
+# print(f"Validation data shape: {val_data.shape}")
 print(f"Validation label shape: {val_label.shape}")
 print(f"Validation control label shape: {val_label_ctl.shape}")
 
-val_dataset = torch.utils.data.TensorDataset(val_data, val_label, val_label_ctl)
+# val_dataset = torch.utils.data.TensorDataset(val_data, val_label, val_label_ctl)
+val_dataset = RNADataset(val_data, val_label, val_label_ctl)
 del val_data, val_label, val_label_ctl
 gc.collect()
 
@@ -229,12 +252,18 @@ del val_dataset
 gc.collect()
 
 print(f"Initializing {args.modelFramework} model...")
-from iDeepB.iDeepB.models.iDeepBModel import iDeepB
+from iDeepB.iDeepB.models.iDeepBModel_RNAFM import iDeepB
 
 if args.modelFramework == "Treat":
     model = iDeepB(dropOut=0.2, control=False).to(args.device)
-elif args.modelFramework == "Control":
-    model = iDeepB(dropOut=0.2, control=True).to(args.device)
+
+def linear_bias_init(m):
+    if isinstance(m, nn.Linear):
+
+        if m.bias is not None:
+            nn.init.zeros_(m.bias)
+
+model.apply(linear_bias_init)
 
 print(f"Model parameter count: {get_parameter_number(model)}")
 
@@ -261,12 +290,22 @@ for epoch in range(args.epochs):
     with tqdm(total=(len(trainLoader))) as t:   
         t.set_description('epoch:{}/{}'.format(epoch, args.epochs))
         for (inputs, targets, targets_ctl) in trainLoader:
-            inputs = inputs.to(args.device)
+            # inputs = inputs.to(args.device)
             targets = targets.to(args.device)
-            targets_ctl = targets_ctl.to(args.device)
+            # targets_ctl = targets_ctl.to(args.device)
+            
+            batch_data = [("seq_{}".format(i), seq) for i, seq in enumerate(inputs)]
+            
+            # 生成token并移至GPU
+            _, _, batch_tokens = batch_converter(batch_data)
+            with torch.no_grad():
+                RNAFM.eval()  
+                token_embeddings = RNAFM(batch_tokens.to(args.device), repr_layers=[12])["representations"][12][:, 1:-1, :]
 
             if(EncodeMode == "OneHot"):
                 outputs = model(inputs.float())
+            elif(EncodeMode == "LLM"):
+                outputs = model(token_embeddings.float().to(args.device))
             
             if (args.modelFramework == "Control"): 
                 w = outputs[2]
@@ -318,12 +357,22 @@ for epoch in range(args.epochs):
     # validation data
     model.eval()
     for (inputs, targets, targets_ctl) in valLoader:
-        inputs = inputs.to(args.device)
+        # inputs = inputs.to(args.device)
         targets = targets.to(args.device)
-        targets_ctl = targets_ctl.to(args.device)
+        # targets_ctl = targets_ctl.to(args.device)
+        
+        batch_data = [("seq_{}".format(i), seq) for i, seq in enumerate(inputs)]
+        
+        # 生成token并移至GPU
+        _, _, batch_tokens = batch_converter(batch_data)
+        with torch.no_grad():
+            RNAFM.eval()  
+            token_embeddings = RNAFM(batch_tokens.to(args.device), repr_layers=[12])["representations"][12][:, 1:-1, :]
 
         if(EncodeMode == "OneHot"):
             outputs = model(inputs.float())
+        elif(EncodeMode == "LLM"):
+            outputs = model(token_embeddings.float().to(args.device))
         
         if (args.modelFramework == "Control"): 
             w = outputs[2]
@@ -439,3 +488,10 @@ else:
     print(f"{protein}, {cell}, {args.loss_fun_name}, non-log, loss={val_loss_meter.avg}, pearson={val_p_meter.avg}, spearman={val_sp_meter.avg}, auc={val_AUC_meter.avg}, prauc={val_prAUC_meter.avg}, mse={val_mse_meter.avg}")
 
 
+OP = open(f"iDeepB_train_val_metric.txt", "a+")
+
+if(args.log):
+    print(f"{protein}\t{cell}\t{args.loss_fun_name}\tlog\tloss={val_loss_meter.avg}\tpearson={val_p_meter.avg}\tspearman={val_sp_meter.avg}\tauc={val_AUC_meter.avg}\tprauc={val_prAUC_meter.avg}\tmse={val_mse_meter.avg}", file =OP)
+else:
+    print(f"{protein}\t{cell}\t{args.loss_fun_name}\tnon-log\tloss={val_loss_meter.avg}\tpearson={val_p_meter.avg}\tspearman={val_sp_meter.avg}\tauc={val_AUC_meter.avg}\tprauc={val_prAUC_meter.avg}\tmse={val_mse_meter.avg}", file =OP)
+OP.close()

@@ -11,11 +11,7 @@ import numpy as np
 from Bio import SeqIO
 import os
 
-# =============================================================================
-# KmerList = []
-# for string in map(''.join, itertools.product(['A','B'], repeat=3)):
-#     KmerList.append(string)
-# ============================================================================= 
+
 def get_trids(length=5):
     nucle_com = []
     chars = ['A', 'C', 'G', 'U','N']
@@ -77,30 +73,6 @@ def seq_length_distributon(seqs):
     plt.show()
 # seq_length_distributon(seqs)
 
-# one hot encode
-# =============================================================================
-# def onehot_encode(inputs, vocab):
-#     if(not isinstance(inputs[0], list)):
-#         return "Error: Input is a two dimensional list."
-#     transformed = []
-#     #mapper = {'A':0,'C':1,'G':2,'U':3,'T':3,'N':4}
-#     mapper = dict(zip(vocab,range(len(vocab))))
-#     for input in inputs:
-#         x = np.zeros((len(input), len(vocab)))
-#         for i in range(len(input)):
-#             if input[i] in vocab:
-#                 x[i][mapper[input[i]]] = 1
-#             else:
-#                 print("Error: {message} not in vocab".format(message=input[i]))
-#                 #break
-#                 return False
-#         transformed.append(x)
-#     transformed = np.asarray(transformed)
-#     return transformed
-# vocab = list("ATGCN")
-# strL = [list("ATGCATGN"),list("ATGCATGC")]
-# onehot_encode(strL, vocab)
-# =============================================================================
 
 def onehot_encode1(inputs, vocab, dim=4):
     #if(not isinstance(inputs[0], list)):

@@ -6,22 +6,7 @@ import numpy as np
 import torch
 from typing import Tuple
 from torch import Tensor
-
 import sys
-# sys.path.append("/home/xliu/work/20230313_publicTools/captum-master/") # /data/xliu/work/20230313_publicTools/captum-master
-'''
-sys.path.append("/data/xliu/work/20230313_publicTools/captum-master")
-
-from captum.attr import (
-    GradientShap,
-    DeepLift,
-    DeepLiftShap,
-    IntegratedGradients,
-    LayerConductance,
-    NeuronConductance,
-    NoiseTunnel,
-)
-'''
 
 def set_all_random_seeds(seed: int = 1234) -> None:
     random.seed(seed)
@@ -67,27 +52,3 @@ def hypothetical_contrib_func(
         attributions.append(sub_attributions)
     return tuple(attributions)
 
-'''
-from tests2.helpers.basic_models import (
-    BasicModelWithReusedModules,
-    Conv1dSeqModel,
-    LinearMaxPoolLinearModel,
-    ReLUDeepLiftModel,
-    ReLULinearModel,
-    TanhDeepLiftModel,
-)
-
-# def test_relu_deeplift_with_hypothetical_contrib_func(self) -> None:
-model = Conv1dSeqModel()
-rand_seq_data = torch.abs(torch.randn(2, 4, 1000))
-rand_seq_ref = torch.abs(torch.randn(2, 4, 1000))
-dls = DeepLift(model)
-attr = dls.attribute(
-    rand_seq_data,
-    rand_seq_ref,
-    custom_attribution_func=hypothetical_contrib_func,
-    target=(1, 0)
-)
-#self.assertEqual(attr.shape, rand_seq_data.shape)
-print(attr)
-'''

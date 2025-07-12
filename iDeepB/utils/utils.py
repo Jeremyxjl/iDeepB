@@ -30,20 +30,6 @@ class Meter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-        
-class AverageMeter(object):
-    def __init__(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        # calculate avg
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
 
 def save_model(path, model, optimizer, name="model"):
     if not os.path.exists(path):
