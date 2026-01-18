@@ -112,10 +112,12 @@ elif(args.head == "Control"):
 
 model.load_state_dict(torch.load(f'data/{args.task}/model_params.pth'))
 
-for sequence in seqs[3:4]:
-        prediction = predict1HeadFromSeq(sequence, 101, model, mode="Fragment", device = args.device)
-
-        plot_single_track(prediction)
+model.eval()
+with torch.no_grad():
+    for sequence in seqs[3:4]:
+            prediction = predict1HeadFromSeq(sequence, 101, model, mode="Fragment", device = args.device)
+    
+            plot_single_track(prediction)
     
 ```
 
