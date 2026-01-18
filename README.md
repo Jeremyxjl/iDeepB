@@ -70,9 +70,12 @@ model.load_state_dict(torch.load(f'data/QKI_HepG2_ENCSR570WLM/model_params.pth')
 sequence = 'UUGGUUGUUUAUCUGAGAUUCAGAAUUAAGCAUUUUAUAUUUUAUUUGCUGCCUCUGGCCACCCUACUCUCUUCCUAACACUCUCUCCCUCUCCCAGUUUU'
 vocab = list("AUGC")
 seqsInt = onehot_encode([sequence], vocab, 4)
+
 subseqOH = torch.from_numpy(np.asarray(seqsInt) ).to(args.device)
 
-outputs = model(subseqOH.float()) 
+model.eval()
+with torch.no_grad():
+    outputs = model(subseqOH.float()) 
 
 outputs = np.array(outputs.detach().cpu().numpy().tolist()).reshape(-1).tolist()   
 ```
