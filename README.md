@@ -23,6 +23,9 @@ conda create -n iDeepB python=3.9.7
 conda activate iDeepB
 ```
 
+## model weights
+[Download model weights](http://www.csbio.sjtu.edu.cn/data/iDeepB/iDeepB_treat_weight.zip)
+
 ## Usage:
 ### Train without control
 
